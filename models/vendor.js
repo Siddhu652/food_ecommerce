@@ -15,7 +15,10 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Vendor.init({
-    user_id: DataTypes.INTEGER,
+    user_id: {
+      type: DataTypes.INTEGER,
+      allowNull:false
+    },
     restaurant_name: DataTypes.STRING,
     license_number: DataTypes.STRING,
     address: DataTypes.TEXT,
@@ -26,6 +29,7 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'Vendor',
+    tableName: 'vendors'
   });
   return Vendor;
 };
