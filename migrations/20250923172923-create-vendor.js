@@ -2,7 +2,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("customers", {
+    await queryInterface.createTable("vendors", {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -18,26 +18,41 @@ module.exports = {
         onUpdate: "CASCADE",
         onDelete: "CASCADE",
       },
-      home_address: {
-        type: Sequelize.TEXT,
-      },
-      home_landmark: {
+      restaurant_name: {
         type: Sequelize.STRING,
       },
-      work_address: {
-        type: Sequelize.TEXT,
-      },
-      work_landmark: {
+      license_number: {
         type: Sequelize.STRING,
+      },
+      address: {
+        type: Sequelize.TEXT,
       },
       city: {
         type: Sequelize.STRING,
       },
-      state: {
+      landmark: {
         type: Sequelize.STRING,
       },
-      pincode: {
-        type: Sequelize.INTEGER,
+      restaurant_image: {
+        type: Sequelize.STRING,
+      },
+      status: {
+        type: Sequelize.ENUM("pending", "approved", "rejected"),
+        allowNull: false,
+        defaultValue: "pending",
+      },
+
+      opening_time: {
+        type: Sequelize.TIME,
+      },
+      closing_time: {
+        type: Sequelize.TIME,
+      },
+      latitude: {
+        type: Sequelize.DECIMAL(10, 7),
+      },
+      longitude: {
+        type: Sequelize.DECIMAL(10, 7),
       },
       createdAt: {
         allowNull: false,
@@ -50,6 +65,6 @@ module.exports = {
     });
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("customers");
+    await queryInterface.dropTable("vendors");
   },
 };
