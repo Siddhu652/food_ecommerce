@@ -42,7 +42,7 @@ console.log("bucket:", bucket);
       return res.status(400).json({ message: "Restaurant image required" });
     }
 
-    if(!isImage(file)){
+    if(!isImage(req.file)){
       return res.status(415).json({ message : "only images(.img, .png, .jpg, .jpeg) are allowed to upload"});
     }
     // Firebase upload
@@ -101,7 +101,7 @@ console.log("bucket:", bucket);
         address,
         city,
         landmark,
-        res_img: publicUrl,
+        restaurant_image: publicUrl,
         opening_time,
         closing_time,
         latitude,

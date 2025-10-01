@@ -1,34 +1,32 @@
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const { User } = require("../models");
+const { verifyAccessToken } = require("../utils/jwt");
 
-const app = express();
-app.use(express.json());
+async function verifyToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
 
-const { verifyAccessToken } = require('../utils/jwt');
-
-async function verifyToken(req, res, next){
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if(!token) return res.status(401).json({ message: 'No token' });
+  if (!token) return res.status(401).json({ message: "No token" });
 
   try {
     const payload = verifyAccessToken(token); // throws on invalid/expired
-    // OPTIONAL: small DB check if you want live user state (role changed/deactivated)
-    // const user = await User.findByPk(payload.id);
-    // if(!user) return res.status(401).json({ message: 'User not found' });
-    // if(user.role !== payload.role) // handle change
-    req.user = payload; // { id, role, vendorId, iat, exp }
+    const user = await User.findByPk(payload.id);
+
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    req.user = { id: user.id, role: user.role, email: user.email };
     next();
-  } catch(err) {
-    return res.status(401).json({ message: 'Invalid or expired token' });
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
 }
 
-function authorizeRoles(...allowed){
+function authorizeRoles(...allowed) {
   return (req, res, next) => {
-    if(!req.user) return res.status(401).json({ message: 'Not authenticated' });
-    if(!allowed.includes(req.user.role)) return res.status(403).json({ message: 'Forbidden' });
+    if (!req.user) return res.status(401).json({ message: "Not authenticated" });
+    if (!allowed.includes(req.user.role))
+      return res.status(403).json({ message: "Forbidden" });
     next();
   };
 }
