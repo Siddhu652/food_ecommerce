@@ -3,7 +3,7 @@ const { User, Vendor, sequelize } = require("../models");
 const { bucket } = require("../config/firebase");
 const bcrypt = require("bcrypt");
 // vendorController.js
-const { validEmail, validTime } = require("../utils/validation");
+const { validEmail, validTime, isImage, validPhone } = require("../utils/validation");
 const vendor_signup = async (req, res) => {
   const t = await sequelize.transaction();
   console.log("req.body:", req.body);
@@ -42,6 +42,9 @@ console.log("bucket:", bucket);
       return res.status(400).json({ message: "Restaurant image required" });
     }
 
+    if(!isImage(file)){
+      return res.status(415).json({ message : "only images(.img, .png, .jpg, .jpeg) are allowed to upload"});
+    }
     // Firebase upload
     const fileName = `restaurants/${Date.now()}_${req.file.originalname}`;
     const file = bucket.file(fileName);
@@ -67,6 +70,12 @@ console.log("bucket:", bucket);
       });
     }
 
+    if(!validPhone(phoneNo)){
+       return res.status(400).json({
+        status: 400,
+        message: "Enter a valid 10 digit phone number",
+      });
+    }
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: "Email already registered" });

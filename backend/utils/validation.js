@@ -6,11 +6,19 @@ function validEmail(mailid){
     return regex.test(cleaned);
 }
 
+function validPhone(phoneNo) {
+  return /^\d{10}$/.test(phoneNo);
+}
+
 
 function validTime(timing){
     const time_format = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM)$/i;
     return time_format.test(timing.trim());
 }
 
+function isImage(file) {
+  if (!file) return false;
+  return file.mimetype.startsWith("image/");
+}
 
-module.exports = { validEmail, validTime };
+module.exports = { validEmail, validTime , isImage, validPhone};
