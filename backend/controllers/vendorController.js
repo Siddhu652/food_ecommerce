@@ -1,17 +1,11 @@
-const { where } = require("sequelize");
-const { User, Vendor, sequelize } = require("../models");
+const fs = require("fs");
+const path = require("path");
 const { bucket } = require("../config/firebase");
+const { User, Vendor, sequelize } = require("../models");
 const bcrypt = require("bcrypt");
-// vendorController.js
-const { validEmail, validTime, isImage, validPhone } = require("../utils/validation");
+
 const vendor_signup = async (req, res) => {
   const t = await sequelize.transaction();
-  console.log("req.body:", req.body);
-console.log("req.file:", req.file);
-// console.log("req.files:", req.files);
-console.log("bucket:", bucket);
-
-
   try {
     const {
       user_name,
@@ -29,59 +23,27 @@ console.log("bucket:", bucket);
       longitude,
     } = req.body;
 
-    // if (!req.file){
-    //   return res.status(400).json({ message: "Restaurant image required" });
-    // }
-
-    if (!email || !password || !restaurant_name) {
-      return res.status(400).json({ message: "Required fields missing" });
-    }
-
-    //image processing
     if (!req.file) {
       return res.status(400).json({ message: "Restaurant image required" });
     }
 
-    if(!isImage(req.file)){
-      return res.status(415).json({ message : "only images(.img, .png, .jpg, .jpeg) are allowed to upload"});
-    }
-    // Firebase upload
+    const localFilePath = req.file.path;
     const fileName = `restaurants/${Date.now()}_${req.file.originalname}`;
     const file = bucket.file(fileName);
 
-    await file.save(req.file.buffer, {
-      contentType: req.file.mimetype,
+    await bucket.upload(localFilePath, {
+      destination: fileName,
       public: true,
+      metadata: { contentType: req.file.mimetype },
     });
 
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
 
-    if (!validEmail(email)) {
-      return res.status(400).json({
-        status: 400,
-        message: "email is not valid format",
-      });
-    }
+    fs.unlink(localFilePath, (err) => {
+      if (err) console.error("Error deleting local file:", err);
+    });
 
-    if (!validTime(opening_time) || !validTime(closing_time)) {
-      return res.status(400).json({
-        status: 400,
-        message: "Invalid time format please give time format as 12Hours AM/PM",
-      });
-    }
-
-    if(!validPhone(phoneNo)){
-       return res.status(400).json({
-        status: 400,
-        message: "Enter a valid 10 digit phone number",
-      });
-    }
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ message: "Email already registered" });
-    }
-
-    const hashedPass = await bcrypt.hash(password, 10);
+    const hashedPass = await bcrypt.hash(password, 3);
     const add_user_vendor = await User.create(
       {
         userName: user_name,
@@ -111,24 +73,25 @@ console.log("bucket:", bucket);
       { transaction: t }
     );
 
-    const safeUser = {
-      id: add_user_vendor.id,
-      userName: add_user_vendor.userName,
-      email: add_user_vendor.email,
-      phoneNumber: add_user_vendor.phoneNumber,
-      role: add_user_vendor.role,
-    };
-
     await t.commit();
+
     res.status(201).json({
       message: "success",
-      user: safeUser,
+      user: {
+        id: add_user_vendor.id,
+        userName: add_user_vendor.userName,
+        email: add_user_vendor.email,
+        phoneNumber: add_user_vendor.phoneNumber,
+        role: add_user_vendor.role,
+      },
       vendor: add_vendor_detail,
     });
   } catch (error) {
+    console.error("Vendor signup error:", error); // <-- full error object
     await t.rollback();
     res.status(500).json({
       error: error.message,
+      stack: error.stack, // helpful in dev
     });
   }
 };
