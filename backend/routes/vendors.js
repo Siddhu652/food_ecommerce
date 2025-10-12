@@ -6,8 +6,7 @@ const restaurant_image_upload = require("../middleware/vendorImageUpload");
 
 router.post("/signup", restaurant_image_upload.single("res_img"), vendorController.vendor_signup);
 
-router.get("/authcheck", verifyToken, authorizeRoles("vendor"), (req, res) => {
-  res.json({ message: `Welcome Vendor ${req.user.id}` });
-});
+// router.post("/login", verifyToken, authorizeRoles("vendor"), vendorController.vendor_login);
+router.post("/profile", verifyToken, authorizeRoles("vendor"), vendorController.get_vendor_profile);
 
 module.exports = router;

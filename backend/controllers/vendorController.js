@@ -2,15 +2,25 @@ const { Readable } = require("stream");
 const bcrypt = require("bcrypt");
 const { bucket } = require("../config/firebase");
 const { User, Vendor, sequelize } = require("../models");
+const { where } = require("sequelize");
 
 const vendor_signup = async (req, res) => {
   const t = await sequelize.transaction();
   try {
     const {
-      user_name, password, email, phoneNo,
-      restaurant_name, license_number,
-      address, city, landmark, opening_time, closing_time,
-      latitude, longitude
+      user_name,
+      password,
+      email,
+      phoneNo,
+      restaurant_name,
+      license_number,
+      address,
+      city,
+      landmark,
+      opening_time,
+      closing_time,
+      latitude,
+      longitude,
     } = req.body;
 
     if (!req.file) {
@@ -19,38 +29,40 @@ const vendor_signup = async (req, res) => {
 
     const fileName = `restaurants/${Date.now()}_${req.file.originalname}`;
     const contentType = req.file.mimetype;
-    const fileBuffer = req.file.buffer; // Memory buffer
+    const fileBuffer = req.file.buffer;
 
-    // Hash password
     const hashedPass = await bcrypt.hash(password, 3);
 
-    // Create User + Vendor records first
-    const add_user_vendor = await User.create({
-      userName: user_name,
-      email,
-      password: hashedPass,
-      phoneNumber: phoneNo,
-      role: "vendor",
-    }, { transaction: t });
+    const add_user_vendor = await User.create(
+      {
+        userName: user_name,
+        email,
+        password: hashedPass,
+        phoneNumber: phoneNo,
+        role: "vendor",
+      },
+      { transaction: t }
+    );
 
-    const add_vendor_detail = await Vendor.create({
-      user_id: add_user_vendor.id,
-      restaurant_name,
-      license_number,
-      address,
-      city,
-      landmark,
-      // restaurant_image: null, // Will update after upload
-      opening_time,
-      closing_time,
-      latitude,
-      longitude,
-      status: "pending",
-    }, { transaction: t });
+    const add_vendor_detail = await Vendor.create(
+      {
+        user_id: add_user_vendor.id,
+        restaurant_name,
+        license_number,
+        address,
+        city,
+        landmark,
+        opening_time,
+        closing_time,
+        latitude,
+        longitude,
+        status: "pending",
+      },
+      { transaction: t }
+    );
 
     await t.commit();
 
-    // ✅ Stream upload to Firebase (async background)
     const blob = bucket.file(fileName);
     const blobStream = blob.createWriteStream({
       metadata: { contentType },
@@ -58,7 +70,8 @@ const vendor_signup = async (req, res) => {
     });
 
     const stream = Readable.from(fileBuffer);
-    stream.pipe(blobStream)
+    stream
+      .pipe(blobStream)
       .on("finish", async () => {
         const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
         await Vendor.update(
@@ -70,7 +83,6 @@ const vendor_signup = async (req, res) => {
         console.error("Firebase stream upload failed:", err);
       });
 
-    // ✅ Respond immediately (upload continues in background)
     res.status(201).json({
       message: "success",
       user: {
@@ -82,7 +94,6 @@ const vendor_signup = async (req, res) => {
       },
       vendor: add_vendor_detail,
     });
-
   } catch (error) {
     await t.rollback();
     console.error("Vendor signup error:", error);
@@ -90,4 +101,59 @@ const vendor_signup = async (req, res) => {
   }
 };
 
-module.exports = { vendor_signup };
+const get_vendor_profile = async (req, res) => {
+  try{
+  const userId = req.user.id;
+
+  const vendor_detail = await Vendor.findOne({
+    where: {
+      user_id: userId,
+    },
+    include: {
+      model: User,
+      attributes: ["id", "userName", "email", "phoneNumber", "role"],
+    },
+  });
+  if (!vendor_detail) {
+    return res.status(404).json({ message: "Vendor profile not found" });
+  }
+
+  const responseData = {
+      vendorId: vendor_detail.id,
+      userId: vendor_detail.user_id,
+      restaurantName: vendor_detail.restaurant_name,
+      restaurantImage: vendor_detail.restaurant_image,
+      status: vendor_detail.status, 
+      role: vendor_detail.User.role,
+
+      contact: {
+        phoneNumber: vendor_detail.User.phoneNumber,
+        email: vendor_detail.User.email,
+      },
+
+      location: {
+        address: vendor_detail.address,
+        landmark: vendor_detail.landmark,
+        city: vendor_detail.city,
+        latitude: vendor_detail.latitude,
+        longitude: vendor_detail.longitude,
+      },
+
+      operatingDetails: {
+        openingTime: vendor_detail.opening_time,
+        closingTime: vendor_detail.closing_time,
+      },
+    };
+
+    res.status(200).json({
+      status: "success",
+      message : responseData
+    });
+  }
+  catch(error){
+    console.error("Vendor profile error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+module.exports = { vendor_signup, get_vendor_profile };

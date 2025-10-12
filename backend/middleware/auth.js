@@ -8,7 +8,7 @@ async function verifyToken(req, res, next) {
   if (!token) return res.status(401).json({ message: "No token" });
 
   try {
-    const payload = verifyAccessToken(token); // throws on invalid/expired
+    const payload = verifyAccessToken(token); 
     const user = await User.findByPk(payload.id);
 
     if (!user) {

@@ -13,6 +13,7 @@ router.use('/vendor', vendorRoutes);
 // router.use('/customer', customerRoutes);
 
 router.get('/', function(req, res, next) {
+  // res.cookie('siddharth', 'cookievalue', {httpOnly:true, maxAge:4000, path:'/'});
   res.render('index', { title: 'Express' });
 });
 
