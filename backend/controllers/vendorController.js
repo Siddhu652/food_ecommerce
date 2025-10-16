@@ -156,4 +156,18 @@ const get_vendor_profile = async (req, res) => {
   }
 };
 
-module.exports = { vendor_signup, get_vendor_profile };
+const profile_update = async (req, res) => {
+  try {
+    console.log("Body:", req.body);
+    console.log("File:", req.file); // Should log the uploaded file object
+
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+    res.json({ message: "File received", filename: req.file.originalname });
+  } catch (error) {
+    console.error("Vendor profile error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+module.exports = { vendor_signup, get_vendor_profile, profile_update };
