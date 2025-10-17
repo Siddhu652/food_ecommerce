@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const { bucket } = require("../config/firebase");
 const { User, Vendor, sequelize } = require("../models");
 const { where } = require("sequelize");
+const { log } = require("console");
 
 const vendor_signup = async (req, res) => {
   const t = await sequelize.transaction();
@@ -27,7 +28,7 @@ const vendor_signup = async (req, res) => {
       return res.status(400).json({ message: "Restaurant image required" });
     }
 
-    const fileName = `restaurants/${Date.now()}_${req.file.originalname}`;
+    const fileName = `restaurants/${req.file.originalname}`;
     const contentType = req.file.mimetype;
     const fileBuffer = req.file.buffer;
 
@@ -102,28 +103,28 @@ const vendor_signup = async (req, res) => {
 };
 
 const get_vendor_profile = async (req, res) => {
-  try{
-  const userId = req.user.id;
+  try {
+    const userId = req.params.userId;
 
-  const vendor_detail = await Vendor.findOne({
-    where: {
-      user_id: userId,
-    },
-    include: {
-      model: User,
-      attributes: ["id", "userName", "email", "phoneNumber", "role"],
-    },
-  });
-  if (!vendor_detail) {
-    return res.status(404).json({ message: "Vendor profile not found" });
-  }
+    const vendor_detail = await Vendor.findOne({
+      where: {
+        user_id: userId,
+      },
+      include: {
+        model: User,
+        attributes: ["id", "userName", "email", "phoneNumber", "role"],
+      },
+    });
+    if (!vendor_detail) {
+      return res.status(404).json({ message: "Vendor profile not found" });
+    }
 
-  const responseData = {
+    const responseData = {
       vendorId: vendor_detail.id,
       userId: vendor_detail.user_id,
       restaurantName: vendor_detail.restaurant_name,
       restaurantImage: vendor_detail.restaurant_image,
-      status: vendor_detail.status, 
+      status: vendor_detail.status,
       role: vendor_detail.User.role,
 
       contact: {
@@ -147,23 +148,102 @@ const get_vendor_profile = async (req, res) => {
 
     res.status(200).json({
       status: "success",
-      message : responseData
+      message: responseData,
     });
-  }
-  catch(error){
+  } catch (error) {
     console.error("Vendor profile error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
 const profile_update = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
-    console.log("Body:", req.body);
-    console.log("File:", req.file); // Should log the uploaded file object
+    const vendorId = req.user.id; 
+    const {
+      user_name,
+      phoneNo,
+      restaurant_name,
+      address,
+      city,
+      landmark,
+      opening_time,
+      closing_time,
+      latitude,
+      longitude,
+    } = req.body;
+
+    let restaurant_image_url;
 
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
-    res.json({ message: "File received", filename: req.file.originalname });
+    if (req.file) {
+      // let restaurant_image_name = req.file.originalname;
+      console.log(bucket.name)
+
+      const vendor = await Vendor.findOne({ where: { user_id: vendorId } });
+      if (vendor && vendor.restaurant_image) {
+        const oldFilePath = vendor.restaurant_image.replace(
+          `https://storage.googleapis.com/${bucket.name}/`,
+          ""
+        );
+
+        await bucket
+          .file(oldFilePath)
+          .delete()
+          .catch((err) =>
+            console.warn("Old file delete warning:", err.message)
+          );
+      }
+
+      const fileName = `restaurants/${req.file.originalname}`;
+      const blob = bucket.file(fileName);
+      const stream = Readable.from(req.file.buffer);
+      const blobStream = blob.createWriteStream({
+        metadata: { contentType: req.file.mimetype },
+        public: true,
+      });
+
+      await new Promise((resolve, reject) => {
+        stream
+          .pipe(blobStream)
+          .on("finish", () => {
+            restaurant_image_url = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+            resolve();
+          })
+          .on("error", reject);
+      });
+
+     
+
+      await User.update(
+        { userName: user_name, phoneNumber: phoneNo },
+        { where: { id: vendorId }, transaction: t }
+      );
+
+      const updateData = {
+        restaurant_name,
+        address,
+        city,
+        landmark,
+        opening_time,
+        closing_time,
+        latitude,
+        longitude,
+      };
+      if (restaurant_image_url)
+        updateData.restaurant_image = restaurant_image_url;
+
+      await Vendor.update(updateData, {
+        where: { user_id: vendorId },
+        transaction: t,
+      });
+
+      await t.commit();
+      res.status(200).json({
+        status:"success",
+         message: "vendor profile updated successfully" });
+    }
   } catch (error) {
     console.error("Vendor profile error:", error);
     res.status(500).json({ message: "Internal server error" });
