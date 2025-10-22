@@ -4,10 +4,21 @@ const { bucket } = require("../config/firebase");
 const { User, Vendor, sequelize } = require("../models");
 const { where } = require("sequelize");
 const { log } = require("console");
+const { vendorSignupSchema } = require("../utils/vendorValidation");
 
 const vendor_signup = async (req, res) => {
   const t = await sequelize.transaction();
+
   try {
+    const { error } = vendorSignupSchema.validate(req.body, { abortEarly: false });
+    if (error) {
+      return res.status(400).json({
+        status: 400,
+        message: "mandatory required fields check",
+        errors: error.details.map((err) => err.message),
+      });
+    }
+
     const {
       user_name,
       password,
@@ -28,11 +39,16 @@ const vendor_signup = async (req, res) => {
       return res.status(400).json({ message: "Restaurant image required" });
     }
 
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
     const fileName = `restaurants/${req.file.originalname}`;
     const contentType = req.file.mimetype;
     const fileBuffer = req.file.buffer;
 
-    const hashedPass = await bcrypt.hash(password, 3);
+    const hashedPass = await bcrypt.hash(password, 10);
 
     const add_user_vendor = await User.create(
       {
@@ -85,7 +101,8 @@ const vendor_signup = async (req, res) => {
       });
 
     res.status(201).json({
-      message: "success",
+      status: "success",
+      message: "Vendor registered successfully",
       user: {
         id: add_user_vendor.id,
         userName: add_user_vendor.userName,
