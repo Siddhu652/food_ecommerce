@@ -3,21 +3,19 @@ const bcrypt = require("bcrypt");
 const { bucket } = require("../config/firebase");
 const { User, Vendor, sequelize } = require("../models");
 const { where } = require("sequelize");
-const { log } = require("console");
-const { vendorSignupSchema } = require("../utils/vendorValidation");
 
 const vendor_signup = async (req, res) => {
   const t = await sequelize.transaction();
 
   try {
-    const { error } = vendorSignupSchema.validate(req.body, { abortEarly: false });
-    if (error) {
-      return res.status(400).json({
-        status: 400,
-        message: "mandatory required fields check",
-        errors: error.details.map((err) => err.message),
-      });
-    }
+    // const { error } = vendorSignupSchema.validate(req.body, { abortEarly: false });
+    // if (error) {
+    //   return res.status(400).json({
+    //     status: 400,
+    //     message: "mandatory required fields check",
+    //     errors: error.details.map((err) => err.message),
+    //   });
+    // }
 
     const {
       user_name,
