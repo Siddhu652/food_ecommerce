@@ -20,5 +20,4 @@ authorizeRoles("vendor"),
 restaurant_image_upload.single("restaurant_img"),
 vendorController.profile_update);
 
-
 module.exports = router;
