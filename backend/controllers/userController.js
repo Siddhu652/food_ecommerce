@@ -49,15 +49,32 @@ const update_user = async (req, res) => {
 const user_login = async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ where: { email } });
-  if (!user) return res.status(400).json({ message: "Invalid credentials" });
+const user = await User.findOne({
+  where: { email },
+  include: {
+    model: Role,
+    through: { attributes: [] }, 
+    attributes: ["id", "name"],  
+  },
+});
+
+if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
   // Create tokens
-  const accessToken = signAccessToken({ id: user.id, role: user.role });
-  const refreshToken = signRefreshToken({ id: user.id, role: user.role });
+const accessToken = signAccessToken({
+  id: user.id,
+  roles: user.Roles.map(r => r.name),
+});
+
+const refreshToken = signRefreshToken({
+  id: user.id,
+  roles: user.Roles.map(r => r.name),
+});
+
+  // const refreshToken = signRefreshToken({ id: user.id, role: user.role });
 
   user.refreshToken = refreshToken;
   await user.save();

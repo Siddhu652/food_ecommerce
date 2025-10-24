@@ -54,10 +54,14 @@ const vendor_signup = async (req, res) => {
         email,
         password: hashedPass,
         phoneNumber: phoneNo,
-        role: "vendor",
       },
       { transaction: t }
     );
+
+    const vendorRole = await Role.findOne({ where: { name: "vendor" } });
+    if (vendorRole) {
+      await add_user_vendor.addRole(vendorRole, { transaction: t });
+    }
 
     const add_vendor_detail = await Vendor.create(
       {
@@ -174,7 +178,7 @@ const get_vendor_profile = async (req, res) => {
 const profile_update = async (req, res) => {
   const t = await sequelize.transaction();
   try {
-    const vendorId = req.user.id; 
+    const vendorId = req.user.id;
     const {
       user_name,
       phoneNo,
@@ -194,7 +198,7 @@ const profile_update = async (req, res) => {
 
     if (req.file) {
       // let restaurant_image_name = req.file.originalname;
-      console.log(bucket.name)
+      console.log(bucket.name);
 
       const vendor = await Vendor.findOne({ where: { user_id: vendorId } });
       if (vendor && vendor.restaurant_image) {
@@ -229,8 +233,6 @@ const profile_update = async (req, res) => {
           .on("error", reject);
       });
 
-     
-
       await User.update(
         { userName: user_name, phoneNumber: phoneNo },
         { where: { id: vendorId }, transaction: t }
@@ -256,8 +258,9 @@ const profile_update = async (req, res) => {
 
       await t.commit();
       res.status(200).json({
-        status:"success",
-         message: "vendor profile updated successfully" });
+        status: "success",
+        message: "vendor profile updated successfully",
+      });
     }
   } catch (error) {
     console.error("Vendor profile error:", error);
