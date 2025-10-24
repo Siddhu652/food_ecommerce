@@ -31,4 +31,12 @@ function authorizeRoles(...allowed) {
   };
 }
 
-module.exports = { verifyToken, authorizeRoles };
+const adminOnly = (req,res,next)=>{
+  if(req.user.role !== "admin"){
+    return res.status(403).json({
+      status: "error",
+      message: "You are unauthorized for this url"
+    })
+  }
+}
+module.exports = { verifyToken, authorizeRoles, adminOnly };
