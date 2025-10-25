@@ -17,16 +17,17 @@ const restaurant_approval = async (req, res) => {
         .json({ status: "error", message: "vendor not found" });
     }
 
-    await User.update({ status }, { where: { id: vendorId }, transaction: t });
+   vendor.status = status;
+    await vendor.save({ transaction: t });
     await t.commit();
 
-    res
-      .status(200)
-      .json({
+   return res.status(200).json({
         status: "success",
         message: "vendor status approval updated successfully",
       });
-  } catch (error) {
+  } 
+  //
+  catch (error) {
     await t.rollback();
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
