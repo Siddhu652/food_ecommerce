@@ -1,5 +1,5 @@
 import React from 'react'
-import Dashboard from '../features/VendorDashboard.jsx/Dashboard'
+import Dashboard from '../features/vendor/VendorDashboard'
 
 const VendorDashboard = () => {
   return (
