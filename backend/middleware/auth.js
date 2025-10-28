@@ -8,25 +8,30 @@ async function verifyToken(req, res, next) {
   if (!token) return res.status(401).json({ message: "No token" });
 
   try {
-    const payload = verifyAccessToken(token); 
+    const payload = verifyAccessToken(token);
     const user = await User.findByPk(payload.id);
 
-    if (!user) {
-      return res.status(401).json({ message: "User not found" });
-    }
+    if (!user) return res.status(401).json({ message: "User not found" });
 
-    req.user = { id: user.id, role: user.role, email: user.email };
+    req.user = {
+      id: user.id,
+      roles: payload.roles || [], // ✅ include roles from token
+      email: user.email,
+    };
+
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 }
 
+
 function authorizeRoles(...allowed) {
   return (req, res, next) => {
     if (!req.user) return res.status(401).json({ message: "Not authenticated" });
-    if (!allowed.includes(req.user.role))
+    if (!allowed.some((role) => req.user.roles.includes(role))) {
       return res.status(403).json({ message: "Forbidden" });
+    }
     next();
   };
 }

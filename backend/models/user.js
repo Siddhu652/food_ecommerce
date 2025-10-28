@@ -11,18 +11,17 @@ module.exports = (sequelize, DataTypes) => {
       User.hasOne(models.Vendor, { foreignKey: "user_id" });
       User.hasOne(models.Customer, { foreignKey: "user_id" });
         User.belongsToMany(models.Role, {
-        through: models.UserRoles,
+        through: models.UserRole,
         foreignKey: "user_id",
       });
     }
   }
   User.init(
     {
-      username: DataTypes.STRING,
+      userName: DataTypes.STRING,
       email: DataTypes.STRING,
       password: DataTypes.STRING,
-      phone: DataTypes.STRING,
-      role: DataTypes.STRING,
+      phoneNumber: DataTypes.STRING,
       refreshToken: DataTypes.STRING,
     },
     {

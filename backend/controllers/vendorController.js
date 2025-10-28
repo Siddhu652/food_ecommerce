@@ -1,7 +1,7 @@
 const { Readable } = require("stream");
 const bcrypt = require("bcrypt");
 const { bucket } = require("../config/firebase");
-const { User, Vendor, sequelize } = require("../models");
+const { User, Vendor, Role, sequelize } = require("../models");
 const { where } = require("sequelize");
 
 const vendor_signup = async (req, res) => {
@@ -58,7 +58,7 @@ const vendor_signup = async (req, res) => {
       { transaction: t }
     );
 
-    const vendorRole = await Role.findOne({ where: { name: "vendor" } });
+    const vendorRole = await Role.findOne({ where: { role_name: "vendor" } });
     if (vendorRole) {
       await add_user_vendor.addRole(vendorRole, { transaction: t });
     }
@@ -125,15 +125,23 @@ const get_vendor_profile = async (req, res) => {
   try {
     const userId = req.params.userId;
 
-    const vendor_detail = await Vendor.findOne({
-      where: {
-        user_id: userId,
-      },
-      include: {
-        model: User,
-        attributes: ["id", "userName", "email", "phoneNumber", "role"],
-      },
-    });
+   const vendor_detail = await Vendor.findOne({
+  where: { user_id: userId },
+  include: [
+    {
+      model: User,
+      attributes: ["id", "userName", "email", "phoneNumber"],
+      include: [
+        {
+          model: Role,
+          attributes: ["role_name"], // from roles table
+          through: { attributes: [] }, // hides user_roles pivot data
+        },
+      ],
+    },
+  ],
+});
+
     if (!vendor_detail) {
       return res.status(404).json({ message: "Vendor profile not found" });
     }
@@ -144,7 +152,7 @@ const get_vendor_profile = async (req, res) => {
       restaurantName: vendor_detail.restaurant_name,
       restaurantImage: vendor_detail.restaurant_image,
       status: vendor_detail.status,
-      role: vendor_detail.User.role,
+role: vendor_detail.User.Roles.map((r) => r.role_name),
 
       contact: {
         phoneNumber: vendor_detail.User.phoneNumber,

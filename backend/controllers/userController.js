@@ -1,5 +1,5 @@
 const bcrypt = require("bcrypt");
-const { User } = require("../models");
+const { User, Role } = require("../models");
 const { signAccessToken, signRefreshToken } = require("../utils/jwt");
 // const { messaging } = require("firebase-admin");
 
@@ -54,7 +54,7 @@ const user = await User.findOne({
   include: {
     model: Role,
     through: { attributes: [] }, 
-    attributes: ["id", "name"],  
+    attributes: ["id", "role_name"],  
   },
 });
 
