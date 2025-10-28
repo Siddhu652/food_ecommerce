@@ -3,6 +3,6 @@ const router = express.Router();
 
 const {verifyToken, adminOnly} = require("../middleware/auth")
 
-const adminController =require("../controllers/adminController");
+const {restaurant_approval} =require("../controllers/adminController");
 
-router.post("/approval", verifyToken, adminOnly("admin"), adminController);
+router.post("/approval", verifyToken, adminOnly("admin"), restaurant_approval);

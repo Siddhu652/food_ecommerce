@@ -18,7 +18,11 @@ module.exports = {
       password: {
         type: Sequelize.STRING
       },
+<<<<<<< HEAD
       phoneNumber: {
+=======
+      phone: {
+>>>>>>> 3895b5c95b40d17bc79a12803c651abede26796a
         type: Sequelize.STRING
       },
       refreshToken: {
@@ -35,6 +39,6 @@ module.exports = {
     });
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('Users');
+    await queryInterface.dropTable('users');
   }
 };

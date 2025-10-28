@@ -58,6 +58,8 @@ const user = await User.findOne({
   },
 });
 
+const roles = user.Roles.map(r => r.role_name);
+
 if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
   const isMatch = await bcrypt.compare(password, user.password);
@@ -90,8 +92,8 @@ const refreshToken = signRefreshToken({
     message: "Login success",
     data: {
     name: user.userName,
-    role: user.role,
-    accessToken,
+    roles: roles,    
+    accessToken,                  
     refreshToken
     }
   });
