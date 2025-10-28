@@ -21,11 +21,7 @@ module.exports = (sequelize, DataTypes) => {
       userName: DataTypes.STRING,
       email: DataTypes.STRING,
       password: DataTypes.STRING,
-<<<<<<< HEAD
       phoneNumber: DataTypes.STRING,
-=======
-      phone: DataTypes.STRING,
->>>>>>> 3895b5c95b40d17bc79a12803c651abede26796a
       refreshToken: DataTypes.STRING,
     },
     {
