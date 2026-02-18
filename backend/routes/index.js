@@ -5,16 +5,20 @@ const authRoutes = require('./auth');
 const userRoutes = require('./users');    
 const vendorRoutes = require('./vendors');  
 const customerRoutes = require('./customers');
+const adminRoutes = require('./admin')
+const roleRoutes = require('./role')
 
 router.use('/auth', authRoutes);
 
 router.use('/user', userRoutes);
 router.use('/vendor', vendorRoutes);
+router.use('/admin', adminRoutes);
+router.use('/role', roleRoutes);
 // router.use('/customer', customerRoutes);
 
 router.get('/', function(req, res, next) {
   // res.cookie('siddharth', 'cookievalue', {httpOnly:true, maxAge:4000, path:'/'});
-  res.render('index', { title: 'Express' });
+  res.render('index', { title: 'Food delivery backend' });
 });
 
 module.exports = router;

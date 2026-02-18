@@ -3,24 +3,33 @@ const { verifyAccessToken } = require("../utils/jwt");
 
 async function verifyToken(req, res, next) {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  // console.log("AUTH HEADER:", authHeader);
 
-  if (!token) return res.status(401).json({ message: "No token" });
+  const token = authHeader && authHeader.split(" ")[1];
+  // console.log("TOKEN:", token);
+
+  if (!token) {
+    return res.status(401).json({ message: "No token" });
+  }
 
   try {
     const payload = verifyAccessToken(token);
-    const user = await User.findByPk(payload.id);
+    // console.log("PAYLOAD:", payload);
 
-    if (!user) return res.status(401).json({ message: "User not found" });
+    const user = await User.findByPk(payload.id);
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
 
     req.user = {
       id: user.id,
-      roles: payload.roles || [], // ✅ include roles from token
+      roles: payload.roles || [],
       email: user.email,
     };
 
     next();
   } catch (err) {
+    console.error("JWT ERROR:", err.message);
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 }
@@ -36,12 +45,4 @@ function authorizeRoles(...allowed) {
   };
 }
 
-const adminOnly = (req,res,next)=>{
-  if(req.user.role !== "admin"){
-    return res.status(403).json({
-      status: "error",
-      message: "You are unauthorized for this url"
-    })
-  }
-}
-module.exports = { verifyToken, authorizeRoles, adminOnly };
+module.exports = { verifyToken, authorizeRoles };

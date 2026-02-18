@@ -2,7 +2,6 @@ const { Readable } = require("stream");
 const bcrypt = require("bcrypt");
 const { bucket } = require("../config/firebase");
 const { User, Vendor, Role, sequelize } = require("../models");
-const { where } = require("sequelize");
 
 const vendor_signup = async (req, res) => {
   const t = await sequelize.transaction();
@@ -55,13 +54,17 @@ const vendor_signup = async (req, res) => {
         password: hashedPass,
         phoneNumber: phoneNo,
       },
-      { transaction: t }
+      { transaction: t },
     );
 
-    const vendorRole = await Role.findOne({ where: { role_name: "vendor" } });
-    if (vendorRole) {
-      await add_user_vendor.addRole(vendorRole, { transaction: t });
-    }
+    const vendorRole = await Role.findOne({
+      where: { role_name: "vendor" },
+    });
+
+    await UserRole.create({
+      user_id: add_user_vendor.id,
+      role_id: vendorRole.id,
+    });
 
     const add_vendor_detail = await Vendor.create(
       {
@@ -77,7 +80,7 @@ const vendor_signup = async (req, res) => {
         longitude,
         status: "pending",
       },
-      { transaction: t }
+      { transaction: t },
     );
 
     await t.commit();
@@ -95,7 +98,7 @@ const vendor_signup = async (req, res) => {
         const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
         await Vendor.update(
           { restaurant_image: publicUrl },
-          { where: { id: add_vendor_detail.id } }
+          { where: { id: add_vendor_detail.id } },
         );
       })
       .on("error", (err) => {
@@ -125,22 +128,22 @@ const get_vendor_profile = async (req, res) => {
   try {
     const userId = req.params.userId;
 
-   const vendor_detail = await Vendor.findOne({
-  where: { user_id: userId },
-  include: [
-    {
-      model: User,
-      attributes: ["id", "userName", "email", "phoneNumber"],
+    const vendor_detail = await Vendor.findOne({
+      where: { user_id: userId },
       include: [
         {
-          model: Role,
-          attributes: ["role_name"], // from roles table
-          through: { attributes: [] }, // hides user_roles pivot data
+          model: User,
+          attributes: ["id", "userName", "email", "phoneNumber"],
+          include: [
+            {
+              model: Role,
+              attributes: ["role_name"], // from roles table
+              through: { attributes: [] }, // hides user_roles pivot data
+            },
+          ],
         },
       ],
-    },
-  ],
-});
+    });
 
     if (!vendor_detail) {
       return res.status(404).json({ message: "Vendor profile not found" });
@@ -152,7 +155,7 @@ const get_vendor_profile = async (req, res) => {
       restaurantName: vendor_detail.restaurant_name,
       restaurantImage: vendor_detail.restaurant_image,
       status: vendor_detail.status,
-role: vendor_detail.User.Roles.map((r) => r.role_name),
+      role: vendor_detail.User.Roles.map((r) => r.role_name),
 
       contact: {
         phoneNumber: vendor_detail.User.phoneNumber,
@@ -212,14 +215,14 @@ const profile_update = async (req, res) => {
       if (vendor && vendor.restaurant_image) {
         const oldFilePath = vendor.restaurant_image.replace(
           `https://storage.googleapis.com/${bucket.name}/`,
-          ""
+          "",
         );
 
         await bucket
           .file(oldFilePath)
           .delete()
           .catch((err) =>
-            console.warn("Old file delete warning:", err.message)
+            console.warn("Old file delete warning:", err.message),
           );
       }
 
@@ -243,7 +246,7 @@ const profile_update = async (req, res) => {
 
       await User.update(
         { userName: user_name, phoneNumber: phoneNo },
-        { where: { id: vendorId }, transaction: t }
+        { where: { id: vendorId }, transaction: t },
       );
 
       const updateData = {
@@ -276,4 +279,52 @@ const profile_update = async (req, res) => {
   }
 };
 
-module.exports = { vendor_signup, get_vendor_profile, profile_update };
+const delete_vendor = async (req, res) => {
+  try {
+    const { vendor_id } = req.body;
+
+    if (!vendor_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Bad Request",
+      });
+    }
+
+    const existVendor = await Vendor.findOne({
+      where: {
+        vendor_id: vendor_id,
+      },
+    });
+
+    if (!existVendor) {
+      return res.status(404).json({
+        status: "error",
+        message: "No Vendor found to delete",
+      });
+    }
+
+    await Vendor.destroy({
+      where: {
+        vendor_id: vendor_id,
+      },
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "vendor has been deleted successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal Server Error",
+    });
+  }
+};
+
+module.exports = {
+  vendor_signup,
+  get_vendor_profile,
+  profile_update,
+  delete_vendor,
+};

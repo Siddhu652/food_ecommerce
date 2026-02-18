@@ -9,7 +9,7 @@ router.post("/login", user_login);
 router.post("/logout", user_logout);
 router.post("/refresh", async (req, res) => {
   try {
-    const refreshToken = req.cookies.refreshToken; 
+const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
       return res.status(401).json({ message: "Refresh token missing" });
@@ -27,7 +27,7 @@ router.post("/refresh", async (req, res) => {
       accessToken: newAccessToken,
     });
   } catch (error) {
-    res.status(403).json({ message: "Invalid refresh token" });
+    return res.status(403).json({ message: "Invalid refresh token" });
   }
 });
 

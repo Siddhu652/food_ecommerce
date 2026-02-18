@@ -21,7 +21,6 @@ const get_particular_user = async (req, res) => {
   }
 };
 
-
 const update_user = async (req, res) => {
   try {
     const { userId, userName, email, phoneNumber, password } = req.body;
@@ -45,36 +44,35 @@ const update_user = async (req, res) => {
   }
 };
 
-
 const user_login = async (req, res) => {
   const { email, password } = req.body;
 
-const user = await User.findOne({
-  where: { email },
-  include: {
-    model: Role,
-    through: { attributes: [] }, 
-    attributes: ["id", "role_name"],  
-  },
-});
+  const user = await User.findOne({
+    where: { email },
+    include: {
+      model: Role,
+      through: { attributes: [] },
+      attributes: ["id", "role_name"],
+    },
+  });
 
-const roles = user.Roles.map(r => r.role_name);
+  const roles = user.Roles.map((r) => r.role_name);
 
-if (!user) return res.status(400).json({ message: "Invalid credentials" });
+  if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
   // Create tokens
-const accessToken = signAccessToken({
-  id: user.id,
-  roles: user.Roles.map(r => r.name),
-});
+  const accessToken = signAccessToken({
+    id: user.id,
+    roles: user.Roles.map((r) => r.role_name),
+  });
 
-const refreshToken = signRefreshToken({
-  id: user.id,
-  roles: user.Roles.map(r => r.name),
-});
+  const refreshToken = signRefreshToken({
+    id: user.id,
+    roles: user.Roles.map((r) => r.role_name),
+  });
 
   // const refreshToken = signRefreshToken({ id: user.id, role: user.role });
 
@@ -84,44 +82,49 @@ const refreshToken = signRefreshToken({
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000, 
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   res.status(200).json({
     status: "success",
     message: "Login success",
     data: {
-    name: user.userName,
-    roles: roles,    
-    accessToken,                  
-    refreshToken
-    }
+      name: user.userName,
+      roles: roles,
+      accessToken,
+      refreshToken,
+    },
   });
 };
 
-const user_logout = async(req, res)=>{
-  const {userId} = req.body;
+const user_logout = async (req, res) => {
+  const { userId } = req.body;
   const find_user = await User.findByPk(userId);
-  if(!find_user){
+  if (!find_user) {
     res.status(404).json({
       status: "error",
-      message : "user not found, give us the existing user's id to logout"
-    })
+      message: "user not found, give us the existing user's id to logout",
+    });
   }
- 
+
   find_user.refreshToken = null;
   await find_user.save();
 
-   res.clearCookie("refreshToken", {
+  res.clearCookie("refreshToken", {
     httpOnly: true,
     sameSite: "strict",
   });
 
-
   return res.status(200).json({
     status: "success",
-    message : "Logged out successfully"
-  })
-}
+    message: "Logged out successfully",
+  });
+};
 
-module.exports = { get_all_user, get_particular_user, user_login, user_logout, update_user};
+module.exports = {
+  get_all_user,
+  get_particular_user,
+  user_login,
+  user_logout,
+  update_user,
+};

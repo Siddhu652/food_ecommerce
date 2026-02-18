@@ -1,92 +1,60 @@
 'use strict';
 const bcrypt = require('bcrypt');
 
-/** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up(queryInterface, Sequelize) {
-<<<<<<< HEAD
-    // 1️⃣ Insert the admin role
-=======
->>>>>>> 3895b5c95b40d17bc79a12803c651abede26796a
+  async up(queryInterface) {
+
+    // 1. Insert role
     await queryInterface.bulkInsert(
       'roles',
-      [
-        {
-<<<<<<< HEAD
-          role_name: 'ADMIN',
-=======
-          role_name: 'admin',
->>>>>>> 3895b5c95b40d17bc79a12803c651abede26796a
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ],
-      {}
+      [{
+        role_name: 'admin',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }],
+      { ignoreDuplicates: true }
     );
 
-    const [adminRole] = await queryInterface.sequelize.query(
-      `SELECT id FROM roles WHERE role_name = 'admin' LIMIT 1;`
-    );
-
-    const passwordHash = await bcrypt.hash('Vengadesh652@', 3);
+    // 2. Insert user
+    const passwordHash = await bcrypt.hash('Vengadesh652@', 10);
 
     await queryInterface.bulkInsert(
       'users',
-      [
-        {
-         
-      userName: 'Siddharth',
-      email: 'siddharthprasan652@gmail.com',
-      password: passwordHash,
-      phoneNumber: '8525096124',
-      createdAt: new Date(),
-      updatedAt: new Date()
-
-        },
-      ],
-      {}
+      [{
+        userName: 'Siddharth',
+        email: 'siddharthprasan652@gmail.com',
+        password: passwordHash,
+        phoneNumber: '8525096124',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }],
+      { ignoreDuplicates: true }
     );
 
-    // 4️⃣ Fetch inserted IDs (for MySQL, manual lookup)
-    const [adminRole] = await queryInterface.sequelize.query(
-      `SELECT id FROM roles WHERE role_name = 'ADMIN' LIMIT 1;`
-    );
-    const [adminUser] = await queryInterface.sequelize.query(
-      `SELECT id FROM users WHERE email = 'siddharthprasan652@gmail.com' LIMIT 1;`
+    // 3. Fetch IDs
+    const [[adminRole]] = await queryInterface.sequelize.query(
+      `SELECT id FROM roles WHERE role_name = 'admin' LIMIT 1`
     );
 
+    const [[adminUser]] = await queryInterface.sequelize.query(
+      `SELECT id FROM users WHERE email = 'siddharthprasan652@gmail.com' LIMIT 1`
+    );
 
+    // 4. Assign role
     await queryInterface.bulkInsert(
       'user_roles',
-      [
-        {
-          user_id: adminUser[0].id,
-          role_id: adminRole[0].id,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ],
-      {}
+      [{
+        user_id: adminUser.id,
+        role_id: adminRole.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }],
+      { ignoreDuplicates: true }
     );
   },
 
-  async down(queryInterface, Sequelize) {
-
-    const [adminUser] = await queryInterface.sequelize.query(
-      `SELECT id FROM users WHERE email = 'siddharthprasan652@gmail.com' LIMIT 1;`
-    );
-    const [adminRole] = await queryInterface.sequelize.query(
-      `SELECT id FROM roles WHERE role_name = 'ADMIN' LIMIT 1;`
-    );
-
-    // Delete relation first (foreign key order)
-    if (adminUser.length && adminRole.length) {
-      await queryInterface.bulkDelete('user_roles', {
-        user_id: adminUser[0].id,
-        role_id: adminRole[0].id,
-      });
-    }
-
+  async down(queryInterface) {
+    await queryInterface.bulkDelete('user_roles', null, {});
     await queryInterface.bulkDelete('users', { email: 'siddharthprasan652@gmail.com' });
     await queryInterface.bulkDelete('roles', { role_name: 'admin' });
   },
